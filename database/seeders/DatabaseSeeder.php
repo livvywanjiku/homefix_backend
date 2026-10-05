@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,11 +14,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Roles and permissions must exist before any user is given one.
+        $this->call([
+            RolesAndPermissionsSeeder::class,
+            AdminUserSeeder::class,
         ]);
+
+        // The catalogue is independent of identity, so it seeds separately and
+        // can be re-run on a live database without touching accounts.
+        $this->call(CatalogueSeeder::class);
     }
 }
