@@ -8,12 +8,19 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * Creates the platform administrator.
+ * Creates the platform super administrator.
  *
  * Registration can only ever produce a customer or a professional, so this
- * seeder is the sole way an admin account comes into existence. Credentials
- * come from ADMIN_EMAIL / ADMIN_PASSWORD; there is no hardcoded fallback
- * password, because a silently-weak default is worse than no admin at all.
+ * seeder is the sole way an administrative account comes into existence.
+ * Credentials come from ADMIN_EMAIL / ADMIN_PASSWORD; there is no hardcoded
+ * fallback password, because a silently-weak default is worse than no admin at
+ * all.
+ *
+ * The role is `superadmin` rather than `admin`: this is the platform owner's
+ * account, and four capabilities — managing administrators, roles, permissions
+ * and settings — are reserved to it. Seeding it as an ordinary administrator
+ * would leave the console's own administration screens unreachable on a fresh
+ * install.
  */
 class AdminUserSeeder extends Seeder
 {
@@ -42,8 +49,13 @@ class AdminUserSeeder extends Seeder
             ],
         );
 
-        $admin->assignRole(UserRole::Admin->value);
+        /*
+         * `syncRoles` rather than `assignRole`: the owner account is this
+         * seeder's to define, and an account carrying both `admin` and
+         * `superadmin` would report whichever role happened to sort first.
+         */
+        $admin->syncRoles([UserRole::SuperAdmin->value]);
 
-        $this->command->info("Admin user ready: {$email}");
+        $this->command->info("Super administrator ready: {$email}");
     }
 }

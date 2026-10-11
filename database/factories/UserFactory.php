@@ -83,4 +83,17 @@ class UserFactory extends Factory
     {
         return $this->withRole(UserRole::Admin);
     }
+
+    /**
+     * The platform owner's account.
+     *
+     * Distinct from {@see admin()} because the two hold different permissions:
+     * four capabilities — administrators, roles, permissions and settings — are
+     * reserved to the super administrator, and a test that needs one of those
+     * screens has to say so rather than being handed the wrong role.
+     */
+    public function superAdmin(): static
+    {
+        return $this->withRole(UserRole::SuperAdmin);
+    }
 }

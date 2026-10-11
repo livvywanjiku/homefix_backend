@@ -24,6 +24,12 @@ class ServiceResource extends JsonResource
             'description' => $this->description,
             'is_active' => $this->is_active,
             'category' => ServiceCategoryResource::make($this->whenLoaded('category')),
+
+            // How many professionals have listed this service, when the caller
+            // asked for the count. Present only when counted, so the public
+            // catalogue does not pay for a query nobody reads.
+            'professional_services_count' => $this->whenCounted('professionalServices'),
+
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

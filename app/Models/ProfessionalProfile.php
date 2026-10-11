@@ -131,11 +131,23 @@ class ProfessionalProfile extends Model
      * The eager-load set for a public profile card. Centralised so search
      * results, the profile page and the favourites list cannot drift into
      * different N+1 shapes.
+     *
+     * `services.service` is loaded rather than `services` alone because the card
+     * names what the professional does — and it is ordered by id so the three
+     * the card shows are the same three on every render.
      */
     #[Scope]
     protected function forListing(Builder $query): Builder
     {
-        return $query->with(['user:id,name,avatar_path', 'baseLocation:id,name,region']);
+        return $query->with([
+            'user:id,name,avatar_path',
+            'baseLocation:id,name,region,latitude,longitude',
+            'serviceAreas:id,name,region',
+            'services' => fn ($services) => $services
+                ->active()
+                ->with('service:id,name,slug')
+                ->orderBy('id'),
+        ]);
     }
 
     public function isVerified(): bool

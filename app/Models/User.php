@@ -67,9 +67,16 @@ class User extends Authenticatable
         return $this->status === UserStatus::Active;
     }
 
+    /**
+     * Whether this account may act in the administration area.
+     *
+     * Both administrative roles answer true. What separates them is not
+     * answered here but by the permission gates: a super administrator holds
+     * every permission, an administrator holds the operational set.
+     */
     public function isAdmin(): bool
     {
-        return $this->hasRole(UserRole::Admin->value);
+        return $this->hasAnyRole(UserRole::administrativeValues());
     }
 
     public function isCustomer(): bool
@@ -110,6 +117,45 @@ class User extends Authenticatable
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    /**
+     * The jobs this account has posted, as a customer.
+     *
+     * Named for the role rather than the table so it reads unambiguously
+     * alongside the relations a professional account carries.
+     */
+    public function serviceRequests(): HasMany
+    {
+        return $this->hasMany(ServiceRequest::class, 'customer_id');
+    }
+
+    /**
+     * The prices this account has offered, as a professional.
+     */
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class, 'professional_id');
+    }
+
+    /**
+     * Work this account is doing, as a professional.
+     *
+     * Named for the side of the booking rather than left as `bookings()`, because
+     * the same account id appears in both `customer_id` and `professional_id` and
+     * a single relation would silently answer the wrong question.
+     */
+    public function professionalBookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'professional_id');
+    }
+
+    /**
+     * Work this account has commissioned, as a customer.
+     */
+    public function customerBookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'customer_id');
     }
 
     /**

@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\Geo;
 use Database\Factories\LocationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 #[Fillable(['name', 'region', 'latitude', 'longitude', 'is_active'])]
 class Location extends Model
@@ -62,26 +64,41 @@ class Location extends Model
     }
 
     /**
+     * The ids of every town within a radius of a point.
+     *
+     * Exists because a radius cannot be expressed in portable SQL: haversine
+     * needs trig functions that PostgreSQL has and the SQLite test database does
+     * not. The town table is small and changes rarely, so resolving the radius
+     * to a set of ids in PHP lets every caller filter with a plain `whereIn`
+     * that behaves identically on both engines and uses the index.
+     *
+     * A town without coordinates is excluded rather than treated as distance
+     * zero — see `geocoded()`.
+     *
+     * @return Collection<int, int>
+     */
+    public static function idsWithin(float $latitude, float $longitude, float $radiusKm): Collection
+    {
+        return self::query()
+            ->geocoded()
+            ->get(['id', 'latitude', 'longitude'])
+            ->filter(fn (self $location): bool => ($location->distanceFrom(
+                $latitude,
+                $longitude,
+            ) ?? INF) <= $radiusKm)
+            ->pluck('id');
+    }
+
+    /**
      * Great-circle distance in kilometres from a point, or null when this
      * location has no coordinates.
      *
-     * Computed in PHP rather than SQL so the same formula works on PostgreSQL
-     * and on the SQLite test database, which has no trig functions.
+     * Delegates to App\Support\Geo, which is the one haversine in the codebase —
+     * distance filtering, professional cards and this model all have to agree on
+     * the same number.
      */
     public function distanceFrom(float $latitude, float $longitude): ?float
     {
-        if ($this->latitude === null || $this->longitude === null) {
-            return null;
-        }
-
-        $earthRadiusKm = 6371.0;
-
-        $latDelta = deg2rad($this->latitude - $latitude);
-        $lngDelta = deg2rad($this->longitude - $longitude);
-
-        $a = sin($latDelta / 2) ** 2
-            + cos(deg2rad($latitude)) * cos(deg2rad($this->latitude)) * sin($lngDelta / 2) ** 2;
-
-        return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
+        return Geo::distanceKm($latitude, $longitude, $this->latitude, $this->longitude);
     }
 }

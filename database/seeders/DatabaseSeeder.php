@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         // Roles and permissions must exist before any user is given one.
         $this->call([
             RolesAndPermissionsSeeder::class,
+            SettingsSeeder::class,
             AdminUserSeeder::class,
         ]);
 

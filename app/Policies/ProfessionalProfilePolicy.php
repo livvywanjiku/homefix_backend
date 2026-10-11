@@ -15,15 +15,24 @@ use App\Models\User;
 class ProfessionalProfilePolicy
 {
     /**
-     * Anyone may view a verified professional. An unverified profile is
-     * visible only to its owner and to administrators, so an applicant can see
-     * their own page while it is still in review without it being public.
+     * Anyone may view a verified professional — that is what the public
+     * directory is for, and a visitor deciding whether to sign up has to be able
+     * to look before they do.
+     *
+     * An unverified profile is visible only to its owner and to administrators,
+     * so an applicant can see their own page while it is still in review without
+     * it being public. The caller is therefore nullable: a guest reaching a
+     * public profile has no user, and "no user" must narrow the answer rather
+     * than crash on the type.
      */
-    public function view(User $user, ProfessionalProfile $profile): bool
+    public function view(?User $user, ProfessionalProfile $profile): bool
     {
-        return $profile->isVerified()
-            || $user->id === $profile->user_id
-            || $user->isAdmin();
+        if ($profile->isVerified()) {
+            return true;
+        }
+
+        return $user !== null
+            && ($user->id === $profile->user_id || $user->isAdmin());
     }
 
     /**
