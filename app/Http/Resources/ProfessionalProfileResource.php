@@ -53,7 +53,7 @@ class ProfessionalProfileResource extends JsonResource
                 $user = [
                     'id' => $this->user->id,
                     'name' => $this->user->name,
-                    'avatar_url' => $this->user->avatar_path,
+                    'avatar_url' => $this->user->avatar_url,
                 ];
 
                 if ($isAdmin) {

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -51,6 +52,23 @@ class User extends Authenticatable
             'password' => 'hashed',
             'status' => UserStatus::class,
         ];
+    }
+
+    /**
+     * The browser-facing URL for the uploaded avatar.
+     *
+     * `avatar_path` is the storage-relative path the disk needs; every API
+     * consumer needs the absolute URL. Deriving it here means a resource cannot
+     * accidentally emit a bare path — which is what the frontend was receiving
+     * before avatars were uploadable.
+     */
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::get(
+            fn (): ?string => $this->avatar_path === null
+                ? null
+                : url('storage/'.ltrim($this->avatar_path, '/')),
+        );
     }
 
     /**

@@ -246,9 +246,14 @@ class Quotation extends Model
     public const DISPLAY_RELATIONS = [
         'items',
         'booking',
-        'professional:id,name,avatar_path',
-        'professional.professionalProfile:id,user_id,business_name,base_location_id,verification_status,rating_avg,rating_count,completed_jobs_count',
+        // `phone` is loaded for the post-award fallback; the resource decides
+        // whether this viewer may see it.
+        'professional:id,name,phone,avatar_path',
+        'professional.professionalProfile:id,user_id,business_name,base_location_id,verification_status,rating_avg,rating_count,completed_jobs_count,phone',
         'serviceRequest:id,reference,title,status,expires_at,customer_id,service_id,location_id',
+        // The customer is a counterparty only after the award, but the relation
+        // has to be present for the resource to answer that question at all.
+        'serviceRequest.customer:id,name,avatar_path,phone',
     ];
 
     #[Scope]

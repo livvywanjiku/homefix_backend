@@ -161,7 +161,7 @@ class CatalogueTest extends TestCase
     {
         $this->seed(CatalogueSeeder::class);
 
-        $this->assertSame(15, ServiceCategory::count());
+        $this->assertSame(16, ServiceCategory::count());
         $this->assertSame(15, Location::count());
         $this->assertGreaterThan(50, Service::count());
 
@@ -169,6 +169,10 @@ class CatalogueTest extends TestCase
         $this->assertDatabaseHas('service_categories', ['slug' => 'plumbing']);
         $this->assertDatabaseHas('services', ['slug' => 'leak-repair']);
         $this->assertDatabaseHas('locations', ['name' => 'Nakuru']);
+
+        // The lifestyle category added alongside the trades.
+        $this->assertDatabaseHas('service_categories', ['slug' => 'beauty-personal-care']);
+        $this->assertDatabaseHas('services', ['slug' => 'nail-technician']);
     }
 
     /**
@@ -180,7 +184,7 @@ class CatalogueTest extends TestCase
         $this->seed(CatalogueSeeder::class);
         $this->seed(CatalogueSeeder::class);
 
-        $this->assertSame(15, ServiceCategory::count());
+        $this->assertSame(16, ServiceCategory::count());
         $this->assertSame(15, Location::count());
     }
 }

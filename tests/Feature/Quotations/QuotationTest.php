@@ -786,4 +786,137 @@ class QuotationTest extends TestCase
             ->expectsOutputToContain('No quotations had lapsed.')
             ->assertSuccessful();
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Contact details
+    |--------------------------------------------------------------------------
+    |
+    | The two parties only learn each other's phone number once a quote has
+    | been accepted. Before that, discovery and comparison must stay free of
+    | contact details, or the arrangement can leave the platform before it
+    | exists.
+    */
+
+    public function test_a_pending_quotation_reveals_no_phone_number_to_either_side(): void
+    {
+        $customer = $this->customer();
+        $job = $this->job($customer);
+        $professional = $this->professional();
+
+        $quotation = $this->submit($professional, $job);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/service-requests/{$job->id}/quotations")
+            ->assertOk()
+            ->assertJsonPath('data.0.contact', null);
+
+        $this->actingAs($professional, 'sanctum')
+            ->getJson("/api/professional/quotations/{$quotation->id}")
+            ->assertOk()
+            ->assertJsonPath('data.contact', null);
+    }
+
+    public function test_the_customer_sees_the_professionals_business_number_after_the_award(): void
+    {
+        $customer = $this->customer();
+        $job = $this->job($customer);
+        $professional = $this->professional();
+
+        $profile = $professional->professionalProfile;
+        $profile->update(['phone' => '+254722334455']);
+
+        $quotation = Quotation::factory()
+            ->forRequest($job)
+            ->by($professional)
+            ->priced()
+            ->create();
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/service-requests/{$job->id}/quotations/{$quotation->id}/accept")
+            ->assertOk();
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/service-requests/{$job->id}/quotations")
+            ->assertOk()
+            ->assertJsonPath('data.0.status', 'accepted')
+            ->assertJsonPath('data.0.contact.phone', '+254722334455')
+            ->assertJsonPath('data.0.contact.name', $profile->business_name);
+    }
+
+    public function test_the_customers_account_number_is_the_fallback_when_the_business_phone_is_blank(): void
+    {
+        $customer = $this->customer();
+        $job = $this->job($customer);
+        $professional = $this->professional();
+
+        $professional->update(['phone' => '+254733556677']);
+        $professional->professionalProfile->update(['phone' => null]);
+
+        Quotation::factory()
+            ->forRequest($job)
+            ->by($professional)
+            ->priced()
+            ->accepted()
+            ->create();
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/service-requests/{$job->id}/quotations")
+            ->assertOk()
+            ->assertJsonPath('data.0.contact.phone', '+254733556677');
+    }
+
+    public function test_the_professional_sees_the_customers_number_after_the_award(): void
+    {
+        $customer = $this->customer();
+        $customer->update(['phone' => '+254744667788']);
+
+        $job = $this->job($customer);
+        $professional = $this->professional();
+
+        $quotation = Quotation::factory()
+            ->forRequest($job)
+            ->by($professional)
+            ->priced()
+            ->accepted()
+            ->create();
+
+        $this->actingAs($professional, 'sanctum')
+            ->getJson("/api/professional/quotations/{$quotation->id}")
+            ->assertOk()
+            ->assertJsonPath('data.contact.phone', '+254744667788')
+            ->assertJsonPath('data.contact.name', $customer->name);
+    }
+
+    public function test_another_professional_cannot_read_an_awarded_quotation_or_its_contact(): void
+    {
+        $job = $this->job($this->customer());
+
+        $quotation = Quotation::factory()
+            ->forRequest($job)
+            ->by($this->professional())
+            ->priced()
+            ->accepted()
+            ->create();
+
+        $this->actingAs($this->professional(), 'sanctum')
+            ->getJson("/api/professional/quotations/{$quotation->id}")
+            ->assertNotFound();
+    }
+
+    public function test_another_customer_cannot_see_the_quotes_or_their_contact(): void
+    {
+        $job = $this->job($this->customer());
+
+        Quotation::factory()
+            ->forRequest($job)
+            ->by($this->professional())
+            ->priced()
+            ->accepted()
+            ->create();
+
+        $this->actingAs($this->customer(), 'sanctum')
+            ->getJson("/api/service-requests/{$job->id}/quotations")
+            ->assertForbidden();
+    }
 }

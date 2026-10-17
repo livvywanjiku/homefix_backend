@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 class CatalogueSeeder extends Seeder
 {
     /**
-     * The catalogue from spec §5: fifteen categories, each with the services
+     * The catalogue from spec §5: sixteen categories, each with the services
      * customers actually search for. The first service of each category is the
      * one most often requested, which is why the lists are ordered rather than
      * alphabetical.
@@ -71,6 +71,9 @@ class CatalogueSeeder extends Seeder
         ]],
         'General Maintenance' => ['icon' => '🛠️', 'services' => [
             'Handyman Services', 'Door Repair', 'Lock Replacement', 'Gutter Cleaning', 'Odd Jobs',
+        ]],
+        'Beauty & Personal Care' => ['icon' => '💅', 'services' => [
+            'Mobile Salon', 'Nail Technician', 'Makeup Artist', 'Home Barber', 'Massage Therapy', 'Hair Braiding', 'Facials & Skincare', 'Bridal Beauty',
         ]],
     ];
 

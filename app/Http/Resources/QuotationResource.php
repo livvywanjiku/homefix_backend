@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\QuotationStatus;
 use App\Models\Quotation;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -82,7 +84,7 @@ class QuotationResource extends JsonResource
             'professional' => $this->whenLoaded('professional', fn (): array => [
                 'id' => $this->professional->id,
                 'name' => $this->professional->name,
-                'avatar_url' => $this->professional->avatar_path,
+                'avatar_url' => $this->professional->avatar_url,
                 'business_name' => $this->professional->professionalProfile?->business_name,
                 'rating_avg' => $this->professional->professionalProfile === null
                     ? null
@@ -90,6 +92,16 @@ class QuotationResource extends JsonResource
                 'rating_count' => $this->professional->professionalProfile?->rating_count,
                 'completed_jobs_count' => $this->professional->professionalProfile?->completed_jobs_count,
             ]),
+
+            /*
+             * The counterparty's phone number, and only after the job has been
+             * awarded. Before that the customer is comparing and the
+             * professional is bidding; giving either side the other's number
+             * then would let the arrangement leave the platform before it
+             * exists. Once accepted, the booking is the agreement and the two
+             * parties need to arrange the visit.
+             */
+            'contact' => $this->contactDetails($viewer),
 
             /*
              * The job it is for. A professional reading their own list needs to
@@ -118,5 +130,58 @@ class QuotationResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * The other party's number, once this offer has been accepted.
+     *
+     * Returns null for a pending offer, for an administrator, and for any
+     * account that is neither the customer who posted the job nor the
+     * professional who quoted it. That keeps the existing privacy guarantee —
+     * contact details never appear in discovery or while a job is still being
+     * priced — while giving the two parties what they need to arrange the work.
+     *
+     * @return array{name: string, phone: string}|null
+     */
+    private function contactDetails(?User $viewer): ?array
+    {
+        if ($viewer === null || $this->status !== QuotationStatus::Accepted) {
+            return null;
+        }
+
+        $job = $this->relationLoaded('serviceRequest') ? $this->serviceRequest : null;
+
+        // The professional's side: the customer's account number.
+        if ($viewer->id === $this->professional_id) {
+            $customer = $job !== null && $job->relationLoaded('customer')
+                ? $job->customer
+                : null;
+
+            return $customer?->phone === null || $customer?->phone === ''
+                ? null
+                : ['name' => $customer->name, 'phone' => $customer->phone];
+        }
+
+        // The customer's side: the business number, falling back to the
+        // account's number when the professional left the business field blank.
+        if ($job !== null && $viewer->id === $job->customer_id) {
+            $professional = $this->relationLoaded('professional') ? $this->professional : null;
+            $profile = $professional !== null && $professional->relationLoaded('professionalProfile')
+                ? $professional->professionalProfile
+                : null;
+
+            $phone = $profile?->phone ?: $professional?->phone;
+
+            if ($phone === null || $phone === '') {
+                return null;
+            }
+
+            return [
+                'name' => $profile?->business_name ?? $professional->name,
+                'phone' => $phone,
+            ];
+        }
+
+        return null;
     }
 }

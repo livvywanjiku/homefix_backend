@@ -93,13 +93,13 @@ class BookingResource extends JsonResource
             'customer' => $this->whenLoaded('customer', fn (): array => [
                 'id' => $this->customer->id,
                 'name' => $this->customer->name,
-                'avatar_url' => $this->customer->avatar_path,
+                'avatar_url' => $this->customer->avatar_url,
             ]),
 
             'professional' => $this->whenLoaded('professional', fn (): array => [
                 'id' => $this->professional->id,
                 'name' => $this->professional->name,
-                'avatar_url' => $this->professional->avatar_path,
+                'avatar_url' => $this->professional->avatar_url,
                 'business_name' => $this->professional->professionalProfile?->business_name,
             ]),
 

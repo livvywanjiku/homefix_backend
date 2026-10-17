@@ -50,7 +50,7 @@ class ProfessionalCardResource extends JsonResource
             'user' => $this->whenLoaded('user', fn (): array => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
-                'avatar_url' => $this->user->avatar_path,
+                'avatar_url' => $this->user->avatar_url,
             ]),
 
             'base_location' => LocationResource::make($this->whenLoaded('baseLocation')),

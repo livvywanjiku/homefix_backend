@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\Admin\AdministratorController;
 use App\Http\Controllers\Api\Admin\AnalyticsController;
 use App\Http\Controllers\Api\Admin\AuditLogController;
@@ -57,6 +58,13 @@ Route::prefix('auth')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
+
+        // The account's own details, available to either role. There is no id
+        // in any of these paths — the controller resolves the user from the
+        // token, so there is nothing to point at somebody else's account.
+        Route::put('profile', [AccountController::class, 'update'])->middleware('throttle:20,1');
+        Route::post('avatar', [AccountController::class, 'uploadAvatar'])->middleware('throttle:20,1');
+        Route::delete('avatar', [AccountController::class, 'destroyAvatar'])->middleware('throttle:20,1');
     });
 });
 

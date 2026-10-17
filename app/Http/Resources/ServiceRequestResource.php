@@ -103,7 +103,7 @@ class ServiceRequestResource extends JsonResource
             'customer' => $this->whenLoaded('customer', fn (): array => [
                 'id' => $this->customer->id,
                 'name' => $this->customer->name,
-                'avatar_url' => $this->customer->avatar_path,
+                'avatar_url' => $this->customer->avatar_url,
             ]),
 
             'created_at' => $this->created_at?->toIso8601String(),
